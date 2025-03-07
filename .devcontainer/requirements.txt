@@ -1,0 +1,5 @@
+azure-devops
+msrest
+azure-identity
+pandas
+openpyxl
