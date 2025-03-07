@@ -4,7 +4,7 @@ Tools for querying Azure DevOps,  finding articles in need of freshness review i
 
 !IMPORTANT - sign in first with `az login --use-device-code` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your Microsoft account.
 
-[![Open in Codespace](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=https://github.com/sdgilley/docs-azdo-tools
+[![Open in Codespace](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?repo=https://github.com/sdgilley/docs-azdo-tools)
 
 
 ## Prerequisites
