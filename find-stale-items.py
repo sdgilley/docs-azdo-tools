@@ -81,7 +81,7 @@ cutoff_date = pd.Timestamp(cutoff_date)
 
 # filter out if date is later the cutoff date, these are not stale yet
 articles = articles[articles['LastReviewed'] < cutoff_date]
-print(f"Work item for {end_of_month.strftime('%B')}, LastReviewed before {cutoff_date.strftime('%m/%d/%Y')}: {articles.shape[0]}")
+print(f"Work items for {end_of_month.strftime('%B')}, LastReviewed before {cutoff_date.strftime('%m/%d/%Y')}: {articles.shape[0]}")
 # save the resulting articles to a csv file -these need work items created
 articles.to_csv(csvfile, index=False)
 print(f"Saved to {csvfile}")
