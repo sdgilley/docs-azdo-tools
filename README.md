@@ -30,11 +30,11 @@ Use these scripts to find articles in need of a freshness review, and to create 
 Open each script and fill in the inputs before running.
 
 * `find-stale-items.py`: Find the items that need to be added as work items.
-    * Reads an engagement report, filtered to the document set you're interested in updating.
-    * Finds the list of files that need to be refreshed for either this month or next month, depending on the input value. 
-    * Queries to see if a work item is already present for each article.  
-    * Outputs a csv file with the items that need a work item for freshness review for the given month.  
-    It's a good idea to check this file before using the next script to create the items in DevOps. See full instructions for running in the script.
+    * Reads an engagement report that contains the documents you're interested in updating.
+    * Finds the files that need to be refreshed by the end of this month or next month, depending on the input value.
+    * Queries to see if a work item is already present for each file it finds.  
+    * Outputs a csv file with the items that need a work item for freshness review for the given month.
+    It's a good idea to look over this file before using the next script to create the items in DevOps. See full instructions for running in the script.
 
 * `create-work-items.py`: 
     * Reads an Excel or csv file. One way to use this is to start with an export from the Engagement report, then remove rows that are not needed.  Or, use `find-stale-items.py` which creates a .csv instead, and filters out items that already have a work item associated with it.  
