@@ -69,16 +69,16 @@ connection = a.authenticate_ado()
 wit_client = connection.clients.get_work_item_tracking_client()
 
 # Create work items
-for row in all_rows:
+for index, row in enumerate(all_rows):
     if row.get('Needs 1RP revision') != 'Yes':
         continue
         # Skip rows that don't need 1RP revision
     print(f"Processing row {row.get('File Path', 'N/A')}")
     description = default_description
-    description += f"{row.get('URL', 'N/A')}<br/>"
-    description += f"<br/><br/>Note: <br/>{row.get('Note', 'N/A')}<br/>"
+    description += f"<br/><a href={row.get('URL', '#')} target=_new>{row.get('URL', 'N/A')}</a><br/>"
+    description += f"<br/><br/>Notes: <br/>{row.get('Notes', 'N/A')}<br/>"
     assignee = f"{row.get('Author', 'N/A')}@microsoft.com"
-
+    points = row.get('Story Points', '1')
 
     work_item = [
         {
@@ -110,6 +110,11 @@ for row in all_rows:
             'op': 'add',
             'path': '/fields/System.AssignedTo',
             'value': assignee
+        },
+                {
+            'op': 'add',
+            'path': '/fields/Microsoft.VSTS.Scheduling.StoryPoints',
+            'value': points
         }
     ]
 
@@ -130,14 +135,13 @@ for row in all_rows:
             ],
             id=created_item.id
         )
-
-    print(f"Created work item: {ado_url}/{project_name}/_workitems/edit/{created_item.id}")
+    
+    created_link = f"{ado_url}/{project_name}/_queries/edit/{created_item.id}"
+    print(f"Created work item: {created_link}")
     # add the link to the work item in the excel file
-    df.at[row.index, 'ADO Link'] = f"{ado_url}/{project_name}/_workitems/edit/{created_item.id}"
-   
+    df.at[index, 'ADO Link'] = created_link
 
 print("Done!")
  # save the excel file with the new link
 df.to_csv(read_file, index=False)
 print(f"Saved the file with the new links to {read_file}")
-print(f"Created {len(all_rows)} work items.")
