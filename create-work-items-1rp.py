@@ -33,9 +33,8 @@ area_path = r"Content\Production\Core AI\AI Foundry"
 # iteration_path = r"Content\Selenium\FY25Q3"
 iteration_path = r"Content\Bromine\FY25Q4\04 Apr" #the sprint you want to assign to
 assignee = ''
-### FIX THIS - FIND THE RIGHT PARENT
 parent_item = "375929"  # the ADO parent feature to link the new items to. Empty string if there is none.
-default_title = "Foundry 1RP update: "
+default_title = "Foundry 1RP | "
 # Set mode to help set the fields that are saved into the work items
 
 #################### End of inputs ####################
@@ -46,7 +45,7 @@ read_file = os.path.join(script_dir, read_file)
 ### CHECK WHICH TAGS WE WANT
 tags = ['1RP', 'Build 2025', 'Scripted']
 default_description = ("This auto-generated item was created from the foundry-file-inventory.xlsx file. "
-                       "<br/>Update file to reflect the new 1RP project.  If functionality differs between old and new, keep old project info as well."
+                       "<br/>Update to reflect the new 1RP project.  If functionality differs between old and new, keep old project info as well."
                        "<br/>Make all changes on the BUILD release branch."
                        "<br/><br/>The learn URL to update is: ")
 
@@ -76,7 +75,7 @@ for index, row in enumerate(all_rows):
     print(f"Processing row {row.get('File Path', 'N/A')}")
     description = default_description
     description += f"<br/><a href={row.get('URL', '#')} target=_new>{row.get('URL', 'N/A')}</a><br/>"
-    description += f"<br/><br/>Notes: <br/>{row.get('Notes', 'N/A')}<br/>"
+    description += f"<br/>Notes: <br/>{row.get('Notes', 'N/A')}<br/>"
     assignee = f"{row.get('Author', 'N/A')}@microsoft.com"
     points = row.get('Story Points', '1')
 
