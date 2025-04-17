@@ -1,4 +1,5 @@
 untracked/*.*
+sprint-planning/*.*
 # csv files
 *.csv
 # Excel files

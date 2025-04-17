@@ -2,7 +2,9 @@
 
 Tools for querying Azure DevOps,  finding articles in need of freshness review in Microsoft Learn docs, and creating work items in Azure DevOps.
 
-!IMPORTANT - sign in first with `az login --use-device-code` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your Microsoft account.
+!IMPORTANT - Sign in first with `az login --use-device-code` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your Microsoft account.
+
+!IMPORTANT - Also, when reading/writing to Excel, the file must have General permissions.  Anything more restrictive than General will cause an error.
 
 ## Prerequisites
 
@@ -32,6 +34,7 @@ Open each script and fill in the inputs before running.
 * `find-stale-items.py`: Find the items that need to be added as work items.
     * Reads an engagement report that contains the documents you're interested in updating.
     * Finds the files that need to be refreshed by the end of this month or next month, depending on the input value.
+    * Reads the ms.date from a local version of the repo.  This picks up changes made since the engagement report was run.  
     * Queries to see if a work item is already present for each file it finds.  
     * Outputs a csv file with the items that need a work item for freshness review for the given month.
     It's a good idea to look over this file before using the next script to create the items in DevOps. See full instructions for running in the script.
@@ -68,8 +71,13 @@ You don't need to run these directly, but they are used by the scripts above.  T
 * `fix_titles.py`: Function to standardize the text and format of titles to be used prior to a merge. Supply the title string to be fixed, the suffix that is added to the title found in the file metadata, and optionally, a prefix.  Both prefix and suffix will be removed from the output title.
 * `get_filelist.py`: Function to get a list of all files in the local repository. Call with arguments to get the metadata, then merge by the file URL. Used in the initial version of the `find-stale-items.py` script to get the most recent date for each file.
 
+## Spreadsheet tools (spreadsheet-tools/ folder)
+
+* `update_excel.py`: This script updates a spreadsheet that has a `Work Item` column with the status of work items.  It uses the `azdo.py` helper functions to query DevOps for the status of each work item. The script is set up to run on a specific spreadsheet, but you can modify it to run on any spreadsheet you want, as long as it contains the `Work Item` column, which is used to find the work items in DevOps. 
+* `update-build-spreadsheets.py`: Runs the `update_excel.py` script for each of the tabs in the spreadsheet that requires updating. 
+
 ## Archive files
 
 * `CreateWorkitemsFromExcelFile.ps1`: PowerShell script to create work items in Azure DevOps. Requires a PAT from DevOps. I developed the `create-work-items.py` script based on this script.  (And by "I", I mean mostly "Copilot".) I'm leaving the script here for reference, but I was unable to use it.  It requires a PAT for DevOps that I couldn't figure out how to create anymore.  Also, I've made lots of little modifications to the Python version. The Python version works with Entra ID, and does not require a PAT.  
 
-* `find-stale-items-initial.py`: This was the first version of the `find-stale-items.py` script.  It was a bit more complicated.  It also merged in dates from the local version of the repo to get the most recent date.  This isn't necessary, querying for work items will eliminate articles that already have a recent work item, regardless of their dates.
+* `find-stale-items-2step.py`: This version of the script doesn't look at local dates.  For awhile, I thought that was not needed. But there are cases where it is needed, so the `find-stale-items.py` script is the one to use.  

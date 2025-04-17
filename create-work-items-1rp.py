@@ -23,8 +23,8 @@ import os
 # read_file = "feb-work-items.xlsx"
 # sheet_names = ["Export"]
 # # or input a csv file and set sheet_names to CSV.
-read_file = "foundry-file-inventory.csv"
-sheet_names = ["CSV"]  # set to CSV if you are using a csv file
+read_file = "foundry-file-inventory.xlsx"
+sheet_names = ["file-inventory"]  # set to CSV if you are using a csv file
 # ADO parameters
 ado_url = "https://dev.azure.com/msft-skilling"
 project_name = "Content"
@@ -46,6 +46,7 @@ read_file = os.path.join(script_dir, read_file)
 tags = ['1RP', 'Build 2025', 'Scripted']
 default_description = ("This auto-generated item was created from the foundry-file-inventory.xlsx file. "
                        "<br/>Update to reflect the new 1RP project.  If functionality differs between old and new, keep old project info as well."
+                       "<br/>Check with Sheri for includes to use if article applies to old project only or to new project only."
                        "<br/>Make all changes on the BUILD release branch."
                        "<br/><br/>The learn URL to update is: ")
 
@@ -59,6 +60,7 @@ else:
         df = pd.read_excel(read_file, sheet_name=sheet_name)
         all_rows.extend(df.to_dict(orient='records'))
 
+print(f"Total rows in {read_file}: {len(all_rows)}")
 # Print the keys of the first row for debugging
 # if all_rows:
 #     print("Keys in the first row:", all_rows[0].keys())
@@ -66,6 +68,8 @@ else:
 
 connection = a.authenticate_ado()
 wit_client = connection.clients.get_work_item_tracking_client()
+print("Connected to Azure DevOps")
+
 
 # Create work items
 for index, row in enumerate(all_rows):
@@ -75,9 +79,14 @@ for index, row in enumerate(all_rows):
     print(f"Processing row {row.get('File Path', 'N/A')}")
     description = default_description
     description += f"<br/><a href={row.get('URL', '#')} target=_new>{row.get('URL', 'N/A')}</a><br/>"
-    description += f"<br/>Notes: <br/>{row.get('Notes', 'N/A')}<br/>"
+    description += f"<br/>Additional Notes: <br/>{row.get('Notes', 'N/A')}<br/>"
     assignee = f"{row.get('Author', 'N/A')}@microsoft.com"
     points = row.get('Story Points', '1')
+
+    # Ensure no `nan` values in the payload
+    description = description if pd.notna(description) else "No description provided."
+    assignee = assignee if pd.notna(assignee) else ""
+    points = points if pd.notna(points) else "1"
 
     work_item = [
         {
@@ -117,8 +126,14 @@ for index, row in enumerate(all_rows):
         }
     ]
 
-    created_item = wit_client.create_work_item(document=work_item, project=project_name, type=item_type)
+    # Debugging: Print the payload before sending
+    # print("Work item payload:", work_item)
 
+    try:
+        created_item = wit_client.create_work_item(document=work_item, project=project_name, type=item_type)
+    except Exception as e:
+        print(f"Failed to create work item for row {index}: {e}")
+        continue
     # Link to a parent item if there's a number to link to
     if parent_item:
         wit_client.update_work_item(
@@ -141,6 +156,6 @@ for index, row in enumerate(all_rows):
     df.at[index, 'ADO Link'] = created_link
 
 print("Done!")
- # save the excel file with the new link
-df.to_csv(read_file, index=False)
-print(f"Saved the file with the new links to {read_file}")
+ # save the file with the new link
+df.to_csv("work-items-created.csv", index=False)
+print(f"Saved the file with the new links to work-items-created.csv")
