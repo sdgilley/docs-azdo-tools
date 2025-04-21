@@ -7,3 +7,5 @@ file_path = r"C:\Users\sgilley\OneDrive - Microsoft\AI Foundry\doc-updates-build
 tabs = ["ai-foundry", "ai-services", "Images"] 
 for tab in tabs: 
     update_spreadsheet(file_path, tab)
+# tab = "ai-foundry"
+# update_spreadsheet(file_path, tab)
