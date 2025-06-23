@@ -40,7 +40,7 @@ Open each script and fill in the inputs before running.
     It's a good idea to look over this file before using the next script to create the items in DevOps. See full instructions for running in the script.
 
 * `create-work-items.py`: 
-    * Reads an Excel or csv file. One way to use this is to start with an export from the Engagement report, then remove rows that are not needed.  Or, use `find-stale-items.py` which creates a .csv instead, and filters out items that already have a work item associated with it.  
+    * Reads an Excel or csv file. One way to use this is to start with an export from the Engagement report, then remove rows that are not needed.  Or, use `find-by-month.py` which creates a .csv instead.
     * Creates a work item in Azure DevOps for each row in the file.
 
     The following columns are expected in the input file:
