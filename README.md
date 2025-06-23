@@ -2,9 +2,7 @@
 
 Tools for querying Azure DevOps,  finding articles in need of freshness review in Microsoft Learn docs, and creating work items in Azure DevOps.
 
-⚠️ IMPORTANT - Sign in first with `az login` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your **Microsoft** account, not a BAMI account.
-
-⚠️ IMPORTANT - Also, when reading/writing to Excel, the file must have General permissions.  Anything more restrictive than General will cause an error.
+> ⚠️ IMPORTANT - Sign in first with `az login` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your **Microsoft** account, not a BAMI account.
 
 ## Prerequisites
 
@@ -25,7 +23,10 @@ Open in Codespaces or clone the repo to your local machine.  You can run the scr
         .venv\scripts\activate
         pip install azure-devops msrest azure-identity pandas openpyxl
         ```
-* Add an Engagement report, filtered to the documents of interest, to the same directory as the script.  (You may have to switch permissions to General in this file.)
+
+* Add an Engagement report, filtered to the documents of interest, to the same directory as the script. 
+
+> ⚠️ IMPORTANT - Also, when reading/writing to Excel, the file must have General permissions.  Anything more restrictive than General will cause an error. You may need to modify this in the version of the Engagement report you use.
 
 ## Freshness scripts
 
@@ -73,8 +74,10 @@ You don't need to run these directly, but they are used by the scripts above.  T
 
 ## Spreadsheet tools (spreadsheet-tools/ folder)
 
+I used these for a spreadhseet for Build:
+
 * `update_excel.py`: This script updates a spreadsheet that has a `Work Item` column with the status of work items.  It uses the `azdo.py` helper functions to query DevOps for the status of each work item. The script is set up to run on a specific spreadsheet, but you can modify it to run on any spreadsheet you want, as long as it contains the `Work Item` column, which is used to find the work items in DevOps. 
-* `update-build-spreadsheets.py`: Runs the `update_excel.py` script for each of the tabs in the spreadsheet that requires updating. 
+* `update-build-spreadsheets.py`: Runs the `update_excel.py` script for each of the tabs in the spreadsheet that requires updating.
 
 ## Archive files
 
