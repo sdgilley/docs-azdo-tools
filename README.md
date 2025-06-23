@@ -2,9 +2,9 @@
 
 Tools for querying Azure DevOps,  finding articles in need of freshness review in Microsoft Learn docs, and creating work items in Azure DevOps.
 
-!IMPORTANT - Sign in first with `az login --use-device-code` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your Microsoft account.
+⚠️ IMPORTANT - Sign in first with `az login` before running these scripts to authenticate with Azure DevOps. It doesn't matter which subscription you choose, just that you sign in with your **Microsoft** account, not a BAMI account.
 
-!IMPORTANT - Also, when reading/writing to Excel, the file must have General permissions.  Anything more restrictive than General will cause an error.
+⚠️ IMPORTANT - Also, when reading/writing to Excel, the file must have General permissions.  Anything more restrictive than General will cause an error.
 
 ## Prerequisites
 
