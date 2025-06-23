@@ -12,7 +12,7 @@ def get_filelist(repo_path, fstr):
 
     command1 = f'findstr /S "{fstr}" *.*'
     print(f"Running command: {command1}")
-    output = subprocess.check_output(command1, shell=True, text=True, cwd=repo_path)
+    output = subprocess.check_output(command1, shell=True, text=True, cwd=repo_path, encoding='utf-8', errors='ignore')    
     lines = output.strip().split('\n')
     data = [line.split(f':{fstr}: ') for line in lines]
     df = pd.DataFrame(data, columns=['filename', f'{fstr}'])

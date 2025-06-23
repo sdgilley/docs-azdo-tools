@@ -33,12 +33,13 @@ project_name = "Content"
 item_type = "User Story"
 area_path = r"Content\Production\Core AI\AI Foundry"
 # iteration_path = r"Content\Selenium\FY25Q3"
-iteration_path = r"Content\Bromine\FY25Q4\04 Apr" #the sprint you want to assign to
+iteration_path = r"Content\Bromine\FY26Q1\07 Jul" #the sprint you want to assign to
 assignee = ''
-parent_item = "319589"  # the ADO parent feature to link the new items to. Empty string if there is none.
+parent_item = "414211"  # the ADO parent feature to link the new items to. Empty string if there is none.
 freshness_title = "Freshness - over 90:  "
 # Set mode to help set the fields that are saved into the work items
-mode = "freshness"  # or "engagement"
+mode = "freshness"  # or "engagement or "empty"
+# mode ="empty"  # or "engagement" or "freshness" 
 
 #################### End of inputs ####################
 # add the path to the excel file:
@@ -54,7 +55,7 @@ if mode == "engagement":
     default_title = "Improve engagement: "
 
 # ADO Values for Freshness
-if mode == "freshness":
+if mode == "freshness" or mode == "empty":
     tags = ['content-health', 'freshness', 'Scripted']
     default_description = ("This auto-generated item was created to track a Freshness review. "
                            "Review <a href='https://review.learn.microsoft.com/en-us/help/contribute/freshness?branch=main'>"
@@ -81,12 +82,19 @@ wit_client = connection.clients.get_work_item_tracking_client()
 
 # Create work items
 for row in all_rows:
-    print(f"Processing row {row.get('Url', 'N/A')}")
+    if mode == "empty":
+        print(f"Processing row {row.get('filename', 'N/A')}")
+        description = default_description
+        description += f"<br/>{row.get('filename', '#')}<br/>"
+        assignee = f"{row.get('ms.author', 'N/A')}@microsoft.com"
 
-    description = default_description
-    description += f"<br/><a href={row.get('Url', '#')} target=_new>{row.get('Url', 'N/A')}</a><br/>"
-    description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
-    assignee = f"{row.get('MSAuthor', 'N/A')}@microsoft.com"
+    else:
+        print(f"Processing row {row.get('Url', 'N/A')}")
+
+        description = default_description
+        description += f"<br/><a href={row.get('Url', '#')} target=_new>{row.get('Url', 'N/A')}</a><br/>"
+        description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
+        assignee = f"{row.get('MSAuthor', 'N/A')}@microsoft.com"
 
     if mode == "freshness":
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Freshness</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Freshness', 'N/A')}</td></tr>"
@@ -101,22 +109,23 @@ for row in all_rows:
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>CopyTryScrollRate</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('CopyTryScrollRate', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Freshness</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Freshness', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>LastReviewed</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('LastReviewed', 'N/A')}</td></tr>"
+    if mode == "freshness" or mode == "engagement":
+        # no table if mode is empty
+        description += "</table><br/>"
+        description += "Other page properties:<br/>"
+        description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
 
-    description += "</table><br/>"
-    description += "Other page properties:<br/>"
-    description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
-
-    for keyname in sorted(row.keys()):
-        if keyname in ["Drilldown", "Trends", "GitHubOpenIssuesLink"]:
-            description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>{keyname}</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'>"
-            if row[keyname]:
-                description += f"<a href='{row[keyname]}' target='_new'>URL</a></td></tr>"
+        for keyname in sorted(row.keys()):
+            if keyname in ["Drilldown", "Trends", "GitHubOpenIssuesLink"]:
+                description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>{keyname}</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'>"
+                if row[keyname]:
+                    description += f"<a href='{row[keyname]}' target='_new'>URL</a></td></tr>"
+                else:
+                    description += "</td></tr>"
             else:
-                description += "</td></tr>"
-        else:
-            description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>{keyname}</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row[keyname]}</td></tr>"
+                description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>{keyname}</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row[keyname]}</td></tr>"
 
-    description += "</table>"
+        description += "</table>"
 
     work_item = [
         {

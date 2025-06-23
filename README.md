@@ -17,7 +17,7 @@ Open in Codespaces or clone the repo to your local machine.  You can run the scr
 * Local execution.  If running locally, you'll need:
 
     * Python 3.8 or later installed on your machine.  You can check this by running `py -3 --version` in a command prompt.
-    * Azure CLI installed and authenticated with `az login --use-device-code`
+    * Azure CLI installed and authenticated with `az login`
     * Create a python virtual environment and install requirements:
 
         ```bash
@@ -25,17 +25,17 @@ Open in Codespaces or clone the repo to your local machine.  You can run the scr
         .venv\scripts\activate
         pip install azure-devops msrest azure-identity pandas openpyxl
         ```
+* Add an Engagement report, filtered to the documents of interest, to the same directory as the script.  (You may have to switch permissions to General in this file.)
 
 ## Freshness scripts
 
 Use these scripts to find articles in need of a freshness review, and to create work items in Azure DevOps for items that need to be updated.
 Open each script and fill in the inputs before running.
 
-* `find-stale-items.py`: Find the items that need to be added as work items.
-    * Reads an engagement report that contains the documents you're interested in updating.
-    * Finds the files that need to be refreshed by the end of this month or next month, depending on the input value.
-    * Reads the ms.date from a local version of the repo.  This picks up changes made since the engagement report was run.  
-    * Queries to see if a work item is already present for each file it finds.  
+* `find-by-month.py`: Find the items that need to be added as work items.
+    * Reads the ms.date from a local version of the repo.  This picks up changes made since the engagement report was run. 
+    * Finds the files that need to be refreshed for the given month.
+    * Reads an engagement report that contains the documents you're interested in updating. 
     * Outputs a csv file with the items that need a work item for freshness review for the given month.
     It's a good idea to look over this file before using the next script to create the items in DevOps. See full instructions for running in the script.
 

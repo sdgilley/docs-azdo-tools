@@ -1,7 +1,7 @@
 # repo location
 repo_path = "C:/GitPrivate/azure-ai-docs-pr/articles/ai-foundry"  # your local repo
 toc_file = "C:/GitPrivate/azure-ai-docs-pr/articles/ai-foundry/toc.yml"  # your local repo
-
+url_path = "https://learn.microsoft.com/azure/ai-foundry/"  # base URL for the articles
 import pandas as pd
 import yaml
 import os
@@ -18,7 +18,7 @@ def flatten_toc(items, parent_path=None):
 
         # Generate URL based on the rules
         if not href:
-            url = f"https://learn.microsoft.com/azure/ai-foundry/{name.replace(' ', '-').lower()}"
+            url = f"{url_path}{name.replace(' ', '-').lower()}"
         elif href.startswith(".."):
             url = f"https://learn.microsoft.com/{href[3:].replace('.md', '').replace('.yml', '')}"
             otherToc = "true"
