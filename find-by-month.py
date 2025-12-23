@@ -1,34 +1,38 @@
 # This simply looks at dates in the local repo, lists all files and their dates.
 # # Finds the list of files that need to be refreshed for the given month, based
-# on the ms.date field. Looks only at the month.
+# on the ms.date field. Determines freshness based on ms.update-cycle if present,
+# otherwise uses a default value.
 
 import helpers.get_filelist as h
-import helpers.fix_titles as f
-import helpers.azdo as a
+import helpers.utilities as f
+# import helpers.azdo as a
 import pandas as pd
 import os
 import calendar
 
 ################################## inputs
-repo_path = "C:/GitPrivate/azure-ai-docs-pr/articles/ai-foundry" # your local repo
+repo_path = "C:/git/azure-ai-docs-pr/articles/ai-foundry" # your local repo
 suffix = " - Azure AI Foundry" # title suffix for your docs. Crucial for merging correctly.
-for_month = 7 # month you are preparing for, 1-12
-eng_file = "C:/Git/docs-azdo-tools/sprint-planning/Foundry-engagement-May.xlsx" # your engagement file
-freshness = 3 # freshness in months
+eng_suffix = " - Microsoft Foundry" # suffix used in engagement file
+for_month = 12 # month you are preparing for, 1-12
+eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv" # your engagement file
+default_cycle = 90 # default review cycle in days if not specified in the metadata
+# todo next month: now that work item titles are changing, can also check if 
+# current work item open for a given filename.  This month I did it manually.
+
 ##############################################
 
 for_month_name = calendar.month_name[for_month]
-freq_month = freshness - 1 # subtract 1 to get the month review needs to take place.
 
 # get script directory to read/write all files to same directory
-script_dir = os.path.dirname(os.path.realpath(__file__))
-csvfile = os.path.join(script_dir, f"stale_items_{for_month_name}.csv")
+# freshness_dir = os.path.dirname(os.path.realpath(__file__))
+freshness_dir = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness"
+csvfile = os.path.join(freshness_dir, f"stale_items_{for_month_name}.csv")
 
 #### Step 1 - Get dates from the local repo - this is the most recent date, 
 # since engagement is a month old.  Helps to cut out ones already updated.
 
-# get most recent dates from local repo
-# Only do this step if the local path exists:
+# get most recent dates and other metadata from local repo
 if os.path.exists(repo_path):
     # Checkout the branch and pull latest changes if needed...
     # h.checkout(repo_path, "main")
@@ -41,40 +45,84 @@ if os.path.exists(repo_path):
     articles = pd.merge(articles, authors_df, on='filename')
     service_df = h.get_filelist(repo_path, "ms.service")
     # merge the service data
-    articles = pd.merge(articles, service_df, on='filename')    
+    articles = pd.merge(articles, service_df, on='filename')  
+    # if ms.update-cycle is present, add it to the articles
+    ms_update_cycle_df = h.get_filelist(repo_path, "ms.update-cycle")
+    if not ms_update_cycle_df.empty:
+        articles = pd.merge(articles, ms_update_cycle_df, on='filename', how='left')
+
     # remove includes
     articles = articles[~articles['filename'].str.contains("includes")]
     # only keep ms.service: azure-ai-foundry
     articles = articles[articles['ms.service'].str.contains("azure-ai-foundry", case=False)]
+    #turn back slashes to forward in filenames
+    articles['filename'] = articles['filename'].str.replace("\\", "/", regex=False)
+
+else:
+    print(f"Repository path {repo_path} does not exist. Please check the path.")
+    exit(1)
 
 #### Step 2 - Find articles that need review in the month of interest
-review_month = for_month - freq_month if for_month > freq_month else for_month + 12 - freq_month
 
-# switch ms.date to datetime
+# Convert ms.date to datetime
 articles['ms.date'] = pd.to_datetime(articles['ms.date'], errors='coerce')
-# get the month from the ms.date:
-articles['month'] = articles['ms.date'].dt.month
-# keep articles where month is the review_month
-articles = articles[articles['month'] == review_month]
+
+# Calculate last day of the review month in the current year
+from datetime import datetime, timedelta
+review_year = datetime.now().year
+last_day_of_month = calendar.monthrange(review_year, for_month)[1]
+review_month_end = datetime(review_year, for_month, last_day_of_month)
+
+# Determine review cycle for each article
+def get_review_cycle(row):
+    val = row.get('ms.update-cycle', None)
+    if pd.notnull(val):
+        try:
+            return int(str(val).replace('-days','').replace('days','').strip())
+        except:
+            return default_cycle
+    return default_cycle
+articles['review_cycle'] = articles.apply(get_review_cycle, axis=1)
+
+# Find articles that will be stale by the end of the review month
+articles['stale_by_review_month'] = articles['ms.date'] + pd.to_timedelta(articles['review_cycle'], unit='d') <= review_month_end
+articles = articles[articles['stale_by_review_month']]
 
 print(f"Work items for {for_month_name}: {articles.shape[0]}")
 
 ### Step 3 - read the engagement stats
 # keep the columns that are needed in the create-work-items script
-engagement = pd.read_excel(eng_file, sheet_name="Export",
-                           usecols=['Title', 'PageViews',
-                                            'Url', 'MSAuthor', 'Freshness', 
-                                            'LastReviewed', 'Engagement',
-                                            'Flags', 'BounceRate', 'ClickThroughRate', 
-                                            'CopyTryScrollRate'])
+engagement_columns = ['Title', 'PageViews', 'Url', 'MSAuthor', 'Freshness', 
+                     'LastReviewed', 'Engagement', 'Flags', 'BounceRate', 'ClickThroughRate', 
+                     'CopyTryScrollRate']
+if eng_file.lower().endswith('.csv'):
+    engagement = pd.read_csv(eng_file, usecols=engagement_columns)
+else:
+    engagement = pd.read_excel(eng_file, sheet_name="Export", usecols=engagement_columns)
 # Merge the engagement stats with the articles
+# build the URL from the filename
+articles['Url'] = articles['filename'].apply(lambda x: f.build_url(x))
 # fix the titles so that they match the metadata from the repo
 articles['title'] = articles['title'].apply(lambda x:f.fix_titles(x, suffix))
 # change the name from title to Title to match the engagement file
 articles.rename(columns={'title': 'Title'}, inplace=True)
-# fix the titles in the engagement file
-engagement['Title'] = engagement['Title'].apply(lambda x: f.fix_titles(x, suffix))
-articles = pd.merge(articles, engagement, left_on='Title', right_on='Title', how='left')    
+# fix the titles in the engagement file - use eng_suffix
+engagement['Title'] = engagement['Title'].apply(lambda x: f.fix_titles(x, eng_suffix))
+
+articles = pd.merge(articles, engagement, left_on='Url', right_on='Url', how='left')    
+
+# Handle articles not found in engagement report
+# Fill missing engagement data with "(not found)"
+engagement_columns = ['PageViews', 'MSAuthor', 'Freshness', 'LastReviewed', 'Engagement',
+                     'Flags', 'BounceRate', 'ClickThroughRate', 'CopyTryScrollRate']
+for col in engagement_columns:
+    articles[col] = articles[col].fillna("NA")
+
+# Create URLs for articles not found in engagement report
+# For missing URLs, construct from filename using the build_url function
+articles['Url'] = articles['Url'].fillna(
+    articles['filename'].apply(lambda x: f.build_url(x))
+)
 
 ### Step 4 - write the list of articles to a csv file
 articles.to_csv(csvfile, index=False)

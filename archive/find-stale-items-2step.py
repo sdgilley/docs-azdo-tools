@@ -24,7 +24,7 @@ To use this script:
 # !IMPORTANT - sign in with az login --use-device-code before running this script
 
 import helpers.get_filelist as h
-import helpers.fix_titles as f
+import helpers.utilities as f
 import helpers.azdo as a
 import pandas as pd
 import os

@@ -9,6 +9,7 @@ If you aren't already signed in, run `az login --use-device-code` to authenticat
 
 Work items are created in the sprint specified in the inputs section, 
 and assigned to the MSAuthor found in the spreadsheet.
+Instructions to create vendor work items are included in the description.
 '''
 # Read the read_file and create a work item for each row
 # Start with engagement report excel file
@@ -25,15 +26,14 @@ import os
 # read_file = "feb-work-items.xlsx"
 # sheet_names = ["Export"]
 # # or input a csv file and set sheet_names to CSV.
-read_file = "Apr-foundry-work-items.csv"
+read_file = "test.csv"
 sheet_names = ["CSV"]  # set to CSV if you are using a csv file
 # ADO parameters
 ado_url = "https://dev.azure.com/msft-skilling"
 project_name = "Content"
 item_type = "User Story"
-area_path = r"Content\Production\Core AI\AI Foundry"
-# iteration_path = r"Content\Selenium\FY25Q3"
-iteration_path = r"Content\Bromine\FY26Q1\07 Jul" #the sprint you want to assign to
+area_path = r"Content\Production\Core AI\AI Foundry Core"
+iteration_path = r"Content\FY26\Q2\11 Nov" #the sprint you want to assign to
 assignee = ''
 parent_item = "414211"  # the ADO parent feature to link the new items to. Empty string if there is none.
 freshness_title = "Freshness - over 90:  "
@@ -46,6 +46,8 @@ mode = "freshness"  # or "engagement or "empty"
 script_dir = os.path.dirname(__file__)
 read_file = os.path.join(script_dir, read_file)
 
+vendor_description = "Leverage the vendors for freshness work wherever it's possible and makes sense to do so. Create <a href='https://dev.azure.com/msft-skilling/Content/_workitems/create/Feature?templateId=dcf45a43-b6de-4660-950e-fdaa62dc4a30&ownerId=c4a28f90-17ae-4384-b514-7273392b082b' target=_new>one work item</a> for 15 or less articles." 
+
 # ADO values for Content Engagement
 if mode == "engagement":
     tags = ['content-engagement', 'Scripted']
@@ -54,12 +56,14 @@ if mode == "engagement":
                            "Troubleshoot lower-engaging articles</a> for tips. <br/><br/>The learn URL to improve is: ")
     default_title = "Improve engagement: "
 
+
 # ADO Values for Freshness
 if mode == "freshness" or mode == "empty":
     tags = ['content-health', 'freshness', 'Scripted']
     default_description = ("This auto-generated item was created to track a Freshness review. "
                            "Review <a href='https://review.learn.microsoft.com/en-us/help/contribute/freshness?branch=main'>"
-                           "the freshness contributor guide page</a> for tips. <br/><br/>The learn URL to freshen up is: ")
+                           "the freshness contributor guide page</a> for tips." 
+                           f"<br>{vendor_description}<br/><br/>The learn URL to freshen up is: ")
     default_title = freshness_title
 
 # Read the Excel file
@@ -80,6 +84,9 @@ else:
 connection = a.authenticate_ado()
 wit_client = connection.clients.get_work_item_tracking_client()
 
+# List to store created work item details
+created_items = []
+
 # Create work items
 for row in all_rows:
     if mode == "empty":
@@ -94,7 +101,7 @@ for row in all_rows:
         description = default_description
         description += f"<br/><a href={row.get('Url', '#')} target=_new>{row.get('Url', 'N/A')}</a><br/>"
         description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
-        assignee = f"{row.get('MSAuthor', 'N/A')}@microsoft.com"
+        assignee = f"{row.get('ms.author', 'N/A')}@microsoft.com"
 
     if mode == "freshness":
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Freshness</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Freshness', 'N/A')}</td></tr>"
@@ -178,6 +185,42 @@ for row in all_rows:
             id=created_item.id
         )
 
+    # Store work item details for CSV
+    work_item_data = {
+        'Work_Item_ID': created_item.id,
+        'Title': default_title + row.get("Title", row.get("filename", "N/A")),
+        'URL': f"{ado_url}/{project_name}/_workitems/edit/{created_item.id}",
+        'Assignee': assignee,
+        'Mode': mode,
+        'Area_Path': area_path,
+        'Iteration_Path': iteration_path,
+        'Tags': ','.join(tags)
+    }
+    
+    # Add mode-specific fields
+    if mode == "empty":
+        work_item_data['Article_Filename'] = row.get('filename', 'N/A')
+        work_item_data['MS_Author'] = row.get('ms.author', 'N/A')
+    else:
+        work_item_data['Article_URL'] = row.get('Url', 'N/A')
+        work_item_data['MS_Author'] = row.get('ms.author', 'N/A')
+        if mode == "freshness":
+            work_item_data['Freshness'] = row.get('Freshness', 'N/A')
+            work_item_data['LastReviewed'] = row.get('LastReviewed', 'N/A')
+            work_item_data['PageViews'] = row.get('PageViews', 'N/A')
+        elif mode == "engagement":
+            work_item_data['Engagement'] = row.get('Engagement', 'N/A')
+            work_item_data['BounceRate'] = row.get('BounceRate', 'N/A')
+            work_item_data['ClickThroughRate'] = row.get('ClickThroughRate', 'N/A')
+    
+    created_items.append(work_item_data)
+
     print(f"Created work item: {ado_url}/{project_name}/_workitems/edit/{created_item.id}")
 
-print("Done!")
+# Create CSV file with all created work items
+output_csv = os.path.join(script_dir, f"created_work_items_{mode}.csv")
+created_items_df = pd.DataFrame(created_items)
+created_items_df.to_csv(output_csv, index=False)
+
+print(f"Done! Created {len(created_items)} work items.")
+print(f"Details saved to: {output_csv}")
