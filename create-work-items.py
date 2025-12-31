@@ -26,14 +26,14 @@ import os
 # read_file = "feb-work-items.xlsx"
 # sheet_names = ["Export"]
 # # or input a csv file and set sheet_names to CSV.
-read_file = "test.csv"
+read_file = r"C:\Users\sgilley\OneDrive - Microsoft\AI Foundry\Freshness\rest-of-jan.csv"
 sheet_names = ["CSV"]  # set to CSV if you are using a csv file
 # ADO parameters
 ado_url = "https://dev.azure.com/msft-skilling"
 project_name = "Content"
 item_type = "User Story"
 area_path = r"Content\Production\Core AI\AI Foundry Core"
-iteration_path = r"Content\FY26\Q2\11 Nov" #the sprint you want to assign to
+iteration_path = r"Content\FY26\Q3\01 Jan" #the sprint you want to assign to
 assignee = ''
 parent_item = "414211"  # the ADO parent feature to link the new items to. Empty string if there is none.
 freshness_title = "Freshness - over 90:  "
@@ -89,11 +89,18 @@ created_items = []
 
 # Create work items
 for row in all_rows:
-    if mode == "empty":
-        print(f"Processing row {row.get('filename', 'N/A')}")
+    # Determine effective mode - use empty if PageViews is NA/missing in freshness mode
+    effective_mode = mode
+    if mode == "freshness" and str(row.get('PageViews', 'NA')).strip() == 'NA':
+        effective_mode = "empty"
+    
+    if effective_mode == "empty":
+        print(f"Processing row {row.get('filename', row.get('Url', 'N/A'))}")
         description = default_description
-        description += f"<br/>{row.get('filename', '#')}<br/>"
-        assignee = f"{row.get('ms.author', 'N/A')}@microsoft.com"
+        description += f"<br/>{row.get('filename', row.get('Url', '#'))}<br/>"
+        author = row.get('ms.author', 'N/A')
+        author = author.strip() if isinstance(author, str) else author
+        assignee = f"{author}@microsoft.com"
 
     else:
         print(f"Processing row {row.get('Url', 'N/A')}")
@@ -101,14 +108,16 @@ for row in all_rows:
         description = default_description
         description += f"<br/><a href={row.get('Url', '#')} target=_new>{row.get('Url', 'N/A')}</a><br/>"
         description += "<table style='border: 1px solid black; border-collapse: collapse;'>"
-        assignee = f"{row.get('ms.author', 'N/A')}@microsoft.com"
+        author = row.get('ms.author', 'N/A')
+        author = author.strip() if isinstance(author, str) else author
+        assignee = f"{author}@microsoft.com"
 
-    if mode == "freshness":
+    if effective_mode == "freshness":
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Freshness</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Freshness', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>LastReviewed</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('LastReviewed', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>MSAuthor</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('MSAuthor', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>PageViews</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('PageViews', 'N/A')}</td></tr>"
-    if mode == "engagement":
+    if effective_mode == "engagement":
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Engagement</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Engagement', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Flags</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Flags', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>BounceRate</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('BounceRate', 'N/A')}</td></tr>"
@@ -116,7 +125,7 @@ for row in all_rows:
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>CopyTryScrollRate</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('CopyTryScrollRate', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>Freshness</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('Freshness', 'N/A')}</td></tr>"
         description += f"<tr><td align='right' style='border: 1px solid black; border-collapse: collapse;'><strong>LastReviewed</strong></td><td align='left' style='border: 1px solid black; border-collapse: collapse;'> {row.get('LastReviewed', 'N/A')}</td></tr>"
-    if mode == "freshness" or mode == "engagement":
+    if effective_mode == "freshness" or effective_mode == "engagement":
         # no table if mode is empty
         description += "</table><br/>"
         description += "Other page properties:<br/>"
@@ -191,24 +200,28 @@ for row in all_rows:
         'Title': default_title + row.get("Title", row.get("filename", "N/A")),
         'URL': f"{ado_url}/{project_name}/_workitems/edit/{created_item.id}",
         'Assignee': assignee,
-        'Mode': mode,
+        'Mode': effective_mode,
         'Area_Path': area_path,
         'Iteration_Path': iteration_path,
         'Tags': ','.join(tags)
     }
     
     # Add mode-specific fields
-    if mode == "empty":
-        work_item_data['Article_Filename'] = row.get('filename', 'N/A')
-        work_item_data['MS_Author'] = row.get('ms.author', 'N/A')
+    if effective_mode == "empty":
+        work_item_data['Article_Filename'] = row.get('filename', row.get('Url', 'N/A'))
+        author_value = row.get('ms.author', 'N/A')
+        author_value = author_value.strip() if isinstance(author_value, str) else author_value
+        work_item_data['MS_Author'] = author_value
     else:
         work_item_data['Article_URL'] = row.get('Url', 'N/A')
-        work_item_data['MS_Author'] = row.get('ms.author', 'N/A')
-        if mode == "freshness":
+        author_value = row.get('ms.author', 'N/A')
+        author_value = author_value.strip() if isinstance(author_value, str) else author_value
+        work_item_data['MS_Author'] = author_value
+        if effective_mode == "freshness":
             work_item_data['Freshness'] = row.get('Freshness', 'N/A')
             work_item_data['LastReviewed'] = row.get('LastReviewed', 'N/A')
             work_item_data['PageViews'] = row.get('PageViews', 'N/A')
-        elif mode == "engagement":
+        elif effective_mode == "engagement":
             work_item_data['Engagement'] = row.get('Engagement', 'N/A')
             work_item_data['BounceRate'] = row.get('BounceRate', 'N/A')
             work_item_data['ClickThroughRate'] = row.get('ClickThroughRate', 'N/A')
