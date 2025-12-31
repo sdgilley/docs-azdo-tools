@@ -8,14 +8,36 @@ def get_filelist(repo_path, fstr):
     command1 = f"cd {repo_path}"
     subprocess.check_output(command1, shell=True, text=True)
 
-    # find the metadata in the md files
+    # find the metadata in the md and yml files (excluding toc.yml)
 
-    command1 = f'findstr /S "{fstr}" *.*'
+    command1 = f'findstr /S "{fstr}" *.md *.yml'
     print(f"Running command: {command1}")
     output = subprocess.check_output(command1, shell=True, text=True, cwd=repo_path, encoding='utf-8', errors='ignore')    
     lines = output.strip().split('\n')
-    data = [line.split(f':{fstr}: ') for line in lines]
+    # Handle both markdown and yaml formats - split on colon that separates filename from content
+    data = []
+    for line in lines:
+        # The format is: filename:metadata-field: value
+        # We need to find where the metadata field starts by looking for the first colon in the line
+        # that separates the filename from the line content
+        if ':' in line and f'{fstr}:' in line:
+            # Find the first colon - this separates filename from content
+            first_colon_pos = line.find(':')
+            # The filename is everything before the first colon
+            filename = line[:first_colon_pos]
+            # Now split the rest by the metadata field
+            rest = line[first_colon_pos+1:]
+            if f'{fstr}:' in rest:
+                parts = rest.split(f'{fstr}:', 1)
+                value = parts[1].lstrip()
+                data.append([filename, value])
+            else:
+                data.append(['', ''])
+        else:
+            data.append(['', ''])
     df = pd.DataFrame(data, columns=['filename', f'{fstr}'])
+    # exclude toc.yml files
+    df = df[~df['filename'].str.endswith('toc.yml')]
     # if fstr is title, fix the titles
     if fstr == "title":
         # remove quotes from titles
