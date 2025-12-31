@@ -14,7 +14,7 @@ import calendar
 repo_path = "C:/git/azure-ai-docs-pr/articles/ai-foundry" # your local repo
 suffix = " - Azure AI Foundry" # title suffix for your docs. Crucial for merging correctly.
 eng_suffix = " - Microsoft Foundry" # suffix used in engagement file
-for_month = 12 # month you are preparing for, 1-12
+for_month = 1 # month you are preparing for, 1-12
 eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv" # your engagement file
 default_cycle = 90 # default review cycle in days if not specified in the metadata
 # todo next month: now that work item titles are changing, can also check if 
@@ -70,6 +70,12 @@ articles['ms.date'] = pd.to_datetime(articles['ms.date'], errors='coerce')
 # Calculate last day of the review month in the current year
 from datetime import datetime, timedelta
 review_year = datetime.now().year
+current_month = datetime.now().month
+
+# If the target month is earlier in the year, it must be next year
+if for_month < current_month:
+    review_year += 1
+
 last_day_of_month = calendar.monthrange(review_year, for_month)[1]
 review_month_end = datetime(review_year, for_month, last_day_of_month)
 
