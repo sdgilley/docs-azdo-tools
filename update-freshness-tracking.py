@@ -6,6 +6,7 @@ import pandas as pd
 import os
 from datetime import datetime
 import calendar
+import re
 
 ################################## inputs
 tracking_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/FreshnessTracking.xlsx"
@@ -13,8 +14,8 @@ eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-n
 freshness_dir = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness"
 output_file = os.path.join(freshness_dir, "FreshnessTrackingEngagement.csv")
 
-# Define month and year to process 
-target_month = 11 # 1-12, or None for current
+# Define month and year of the engagement data to add to the tracking spreadsheet
+target_month = 11 # 1-12, or None for current 
 target_year = 2025  # or None for current
 
 ##############################################
@@ -46,7 +47,17 @@ print(f"Loaded {len(engagement)} articles from engagement file")
 
 
 # Build URLs from article filenames in tracking file
-tracking['Url'] = tracking['Article'].apply(lambda x: f.build_url(x))
+# Remove leading slashes from Article names before building URL
+tracking['Url'] = tracking['Article'].apply(lambda x: f.build_url(x.lstrip('/') if isinstance(x, str) else x))
+
+# Normalize engagement URLs to handle potential mismatches (e.g., with /default/)
+def normalize_url(url):
+    # Remove /default/ from URLs to match tracking URLs
+    if pd.isna(url):
+        return url
+    return re.sub(r'/default/', '/', str(url))
+
+engagement['Url'] = engagement['Url'].apply(normalize_url)
 
 # Convert Date column to datetime if it exists
 if 'Date' in tracking.columns:
