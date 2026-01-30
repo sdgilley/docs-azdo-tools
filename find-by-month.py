@@ -1,4 +1,4 @@
-# This simply looks at dates in the local repo, lists all files and their dates.
+# Use this to generate freshness items for a given month
 # # Finds the list of files that need to be refreshed for the given month, based
 # on the ms.date field. Determines freshness based on ms.update-cycle if present,
 # otherwise uses a default value.
@@ -12,10 +12,10 @@ import calendar
 
 ################################## inputs
 repo_path = "C:/git/azure-ai-docs-pr/articles/ai-foundry" # your local repo
-suffix = " - Azure AI Foundry" # title suffix for your docs. Crucial for merging correctly.
+suffix = " - Microsoft Foundry" # title suffix for your docs. Crucial for merging correctly.
 eng_suffix = " - Microsoft Foundry" # suffix used in engagement file
-for_month = 1 # month you are preparing for, 1-12
-eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv" # your engagement file
+for_month = 2 # month you are preparing for, 1-12
+eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-dec.csv" # your engagement file
 default_cycle = 90 # default review cycle in days if not specified in the metadata
 # todo next month: now that work item titles are changing, can also check if 
 # current work item open for a given filename.  This month I did it manually.

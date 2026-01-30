@@ -7,15 +7,17 @@ import os
 from datetime import datetime
 import calendar
 import re
+import json
 
 ################################## inputs
 tracking_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/FreshnessTracking.xlsx"
 eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv"  # current month's engagement file
 freshness_dir = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness"
 output_file = os.path.join(freshness_dir, "FreshnessTrackingEngagement.csv")
+redirects_file = "C:/git/docs-azdo-tools/redirects/redirects.json"
 
 # Define month and year of the engagement data to add to the tracking spreadsheet
-target_month = 11 # 1-12, or None for current 
+target_month = 12 # 1-12, or None for current 
 target_year = 2025  # or None for current
 
 ##############################################
@@ -24,6 +26,19 @@ target_year = 2025  # or None for current
 month_str = f"{calendar.month_name[target_month]} {target_year}"
 
 print(f"Processing engagement data for {month_str}")
+
+# Load redirects mapping
+redirect_map = {}  # Maps old URL to new URL
+if os.path.exists(redirects_file):
+    with open(redirects_file, 'r') as f:
+        redirects_data = json.load(f)
+        for redirect in redirects_data.get('redirections', []):
+            source = redirect['source_path_from_root'].lstrip('/')
+            target = redirect['redirect_url'].lstrip('/')
+            redirect_map[source] = target
+    print(f"Loaded {len(redirect_map)} redirects")
+else:
+    print(f"Warning: Redirects file not found: {redirects_file}")
 
 # Load tracking file (articles to track)
 if os.path.exists(tracking_file):
@@ -65,7 +80,31 @@ if 'Date' in tracking.columns:
     tracking.rename(columns={'Date': 'UpdatedDate'}, inplace=True)
 
 # Merge engagement data with tracking articles
+# First try direct merge with current URLs
 merged = pd.merge(tracking, engagement, left_on='Url', right_on='Url', how='left')
+
+# For unmatched articles, try to find them using old redirect URLs
+unmatched = merged[merged['PageViews'].isna()].copy()
+if len(unmatched) > 0 and len(redirect_map) > 0:
+    print(f"\nAttempting to match {len(unmatched)} unmatched articles using redirects...")
+    
+    for idx, row in unmatched.iterrows():
+        article_path = row['Article']
+        # Check if this article's old path is in the redirect map
+        if article_path in redirect_map:
+            old_url = redirect_map[article_path]
+            # Try to find engagement data using the old URL
+            eng_match = engagement[engagement['Url'] == old_url]
+            if len(eng_match) > 0:
+                # Update the merged row with engagement data from old URL
+                for col in engagement.columns:
+                    if col != 'Url':
+                        merged.at[idx, col] = eng_match.iloc[0][col]
+                print(f"  Matched '{article_path}' using redirect")
+
+matched_via_redirect = len(unmatched) - merged[merged['PageViews'].isna()].loc[unmatched.index].sum().sum()
+if matched_via_redirect > 0:
+    print(f"Successfully matched {matched_via_redirect} articles via redirects")
 
 # Add Month column
 merged['Month'] = month_str
@@ -74,6 +113,13 @@ merged['Month'] = month_str
 def get_m_value(update_date, target_month, target_year):
     if pd.isna(update_date):
         return None
+
+# Show articles still unmatched after redirect check
+unmatched_final = result[result['PageViews'].isna()]
+if len(unmatched_final) > 0:
+    print(f"\nArticles not found in engagement data (including after redirect check):")
+    for article in unmatched_final['Article'].values:
+        print(f"  - {article}")
     months_since = (target_year - update_date.year) * 12 + (target_month - update_date.month)
     # M0 = month of update, M-1 = month before, M1 = month after, etc.
     return f"M{months_since}"

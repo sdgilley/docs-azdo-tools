@@ -26,17 +26,18 @@ import os
 # read_file = "feb-work-items.xlsx"
 # sheet_names = ["Export"]
 # # or input a csv file and set sheet_names to CSV.
-read_file = r"C:\Users\sgilley\OneDrive - Microsoft\AI Foundry\Freshness\rest-of-jan.csv"
+read_file = r"C:\Users\sgilley\OneDrive - Microsoft\AI Foundry\Freshness\work-items-feb.csv"
 sheet_names = ["CSV"]  # set to CSV if you are using a csv file
 # ADO parameters
 ado_url = "https://dev.azure.com/msft-skilling"
 project_name = "Content"
 item_type = "User Story"
 area_path = r"Content\Production\Core AI\AI Foundry Core"
-iteration_path = r"Content\FY26\Q3\01 Jan" #the sprint you want to assign to
+iteration_path = r"Content\FY26\Q3\02 Feb" #the sprint you want to assign to
 assignee = ''
 parent_item = "414211"  # the ADO parent feature to link the new items to. Empty string if there is none.
-freshness_title = "Freshness - over 90:  "
+freshness_title_90 = "Freshness - over 90:  "
+freshness_title_180 = "Freshness - over 180:  "
 # Set mode to help set the fields that are saved into the work items
 mode = "freshness"  # or "engagement or "empty"
 # mode ="empty"  # or "engagement" or "freshness" 
@@ -64,7 +65,7 @@ if mode == "freshness" or mode == "empty":
                            "Review <a href='https://review.learn.microsoft.com/en-us/help/contribute/freshness?branch=main'>"
                            "the freshness contributor guide page</a> for tips." 
                            f"<br>{vendor_description}<br/><br/>The learn URL to freshen up is: ")
-    default_title = freshness_title
+    default_title = freshness_title_90  # Will be overridden per-row based on Freshness value
 
 # Read the Excel file
 all_rows = []
@@ -143,11 +144,29 @@ for row in all_rows:
 
         description += "</table>"
 
+    # Determine the title prefix based on Freshness value
+    if effective_mode == "freshness" or effective_mode == "empty":
+        try:
+            freshness_days = int(row.get('review_cycle', 0))
+            if freshness_days >= 180:
+                title_prefix = freshness_title_180
+            else:
+                title_prefix = freshness_title_90
+        except (ValueError, TypeError):
+            title_prefix = freshness_title_90
+    else:
+        title_prefix = default_title
+
+    # # TEST MODE: Print titles and skip work item creation
+    # print(f"[TEST] Title: {title_prefix + row['Title']} | review_cycle: {row.get('review_cycle', 'N/A')}")
+    # continue  # Skip work item creation
+    # # END TEST MODE
+
     work_item = [
         {
             'op': 'add',
             'path': '/fields/System.Title',
-            'value': default_title + row["Title"]
+            'value': title_prefix + row["Title"]
         },
         {
             'op': 'add',

@@ -1,0 +1,9 @@
+{
+    "redirections": [
+        {
+          "source_path_from_root": "/articles/ai-foundry/foundry-agent/ask-foundry-agent.md",
+          "redirect_url": "/azure/ai-foundry/concepts/ask-ai",
+          "redirect_document_id": false
+        }
+      ]
+}

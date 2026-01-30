@@ -12,7 +12,7 @@ import calendar
 
 ################################## inputs
 tracking_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/FreshnessTracking.xlsx"
-eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv" # your engagement file
+eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-dec.csv" # your engagement file
 freshness_dir = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness"
 ##############################################
 
