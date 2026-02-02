@@ -9,16 +9,17 @@ import calendar
 import re
 import json
 
-################################## inputs
+################################## inputs - set eng_file and target_month/year to the month you want to add data for
+# Define month and year of the engagement data to add to the tracking spreadsheet
+eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-dec.csv"  # current month's engagement file
+target_month = 12 # 1-12, or None for current 
+target_year = 2025  # or None for current
+
+################################## inputs - these won't change month to month
 tracking_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/FreshnessTracking.xlsx"
-eng_file = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness/foundry-nov.csv"  # current month's engagement file
 freshness_dir = "C:/Users/sgilley/OneDrive - Microsoft/AI Foundry/Freshness"
 output_file = os.path.join(freshness_dir, "FreshnessTrackingEngagement.csv")
 redirects_file = "C:/git/docs-azdo-tools/redirects/redirects.json"
-
-# Define month and year of the engagement data to add to the tracking spreadsheet
-target_month = 12 # 1-12, or None for current 
-target_year = 2025  # or None for current
 
 ##############################################
 
@@ -30,8 +31,8 @@ print(f"Processing engagement data for {month_str}")
 # Load redirects mapping
 redirect_map = {}  # Maps old URL to new URL
 if os.path.exists(redirects_file):
-    with open(redirects_file, 'r') as f:
-        redirects_data = json.load(f)
+    with open(redirects_file, 'r') as redirect_file:
+        redirects_data = json.load(redirect_file)
         for redirect in redirects_data.get('redirections', []):
             source = redirect['source_path_from_root'].lstrip('/')
             target = redirect['redirect_url'].lstrip('/')
@@ -102,9 +103,11 @@ if len(unmatched) > 0 and len(redirect_map) > 0:
                         merged.at[idx, col] = eng_match.iloc[0][col]
                 print(f"  Matched '{article_path}' using redirect")
 
-matched_via_redirect = len(unmatched) - merged[merged['PageViews'].isna()].loc[unmatched.index].sum().sum()
-if matched_via_redirect > 0:
-    print(f"Successfully matched {matched_via_redirect} articles via redirects")
+    # Count how many were matched via redirects
+    still_unmatched = merged[merged['PageViews'].isna()].loc[unmatched.index]
+    matched_via_redirect = len(unmatched) - len(still_unmatched)
+    if matched_via_redirect > 0:
+        print(f"Successfully matched {matched_via_redirect} articles via redirects")
 
 # Add Month column
 merged['Month'] = month_str
@@ -113,13 +116,6 @@ merged['Month'] = month_str
 def get_m_value(update_date, target_month, target_year):
     if pd.isna(update_date):
         return None
-
-# Show articles still unmatched after redirect check
-unmatched_final = result[result['PageViews'].isna()]
-if len(unmatched_final) > 0:
-    print(f"\nArticles not found in engagement data (including after redirect check):")
-    for article in unmatched_final['Article'].values:
-        print(f"  - {article}")
     months_since = (target_year - update_date.year) * 12 + (target_month - update_date.month)
     # M0 = month of update, M-1 = month before, M1 = month after, etc.
     return f"M{months_since}"
@@ -130,11 +126,24 @@ merged['FromUpdate'] = merged['UpdatedDate'].apply(lambda x: get_m_value(x, targ
 columns_to_keep = ['Article', 'UpdatedDate', 'Month', 'FromUpdate'] + [col for col in engagement_columns if col not in ['Title', 'Url']]
 result = merged[columns_to_keep].copy()
 
+# Show articles still unmatched after redirect check
+unmatched_final = result[result['PageViews'].isna()]
+if len(unmatched_final) > 0:
+    print(f"\nArticles not found in engagement data (including after redirect check):")
+    for article in unmatched_final['Article'].values:
+        print(f"  - {article}")
+
 # If output file exists, append to it; otherwise create new
 if os.path.exists(output_file):
     existing = pd.read_csv(output_file)
     result = pd.concat([existing, result], ignore_index=True)
     print(f"Appended to existing file with {len(existing)} rows")
+
+# Remove duplicates (same Article + Month combination)
+before_dedup = len(result)
+result = result.drop_duplicates(subset=['Article', 'Month'], keep='last')
+if before_dedup > len(result):
+    print(f"Removed {before_dedup - len(result)} duplicate rows")
 
 result.to_csv(output_file, index=False)
 print(f"Saved {len(result)} total rows to {output_file}")

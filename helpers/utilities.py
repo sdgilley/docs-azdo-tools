@@ -3,6 +3,8 @@ import re
 def build_url(filename):
     # remove .md and .yml extensions and remove default/ prefix if present
     path = re.sub(r'^default/', '', re.sub(r'\.(md|yml)$', '', filename))
+    # remove articles/ai-foundry/ prefix if present
+    path = re.sub(r'^articles/ai-foundry/', '', path)
     url = f"https://learn.microsoft.com/en-us/azure/ai-foundry/{path.replace('\\','/').replace(' ','-')}"
     return url
 def fix_titles(title, suffix=None, freshness_title=None):
